@@ -1,0 +1,85 @@
+{{define "index"}}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+
+    $("#btn").click(function(){
+    var game = $("#select").val();
+    var currency = $("input[name=currency]:checked").val();
+   
+   $.post("http://127.0.0.1:8083/api/infogame",
+    {
+        idgame: game
+    },
+    function (e){
+        var s1 = document.getElementById('text');
+        ig = e.infogame[0]
+
+        switch (cur.CharCode) {
+            case "":
+                if (ig != "0") {
+                    curRUB=ig+' &#8381;';
+                    s1.innerHTML = curRUB;
+                    break
+                } else{
+                    delGame='Игра удалена из Steam';
+                    s1.innerHTML = delGame;
+                    break
+                }
+            case "USD":
+                if (ig != "0") {
+                    convert = ig/parseFloat(cur.Value);
+                    curUSD=convert.toFixed(2)+' &#36;';
+                    s1.innerHTML = curUSD;
+                    break;
+                } else{
+                    delGame='Игра удалена из Steam';
+                    s1.innerHTML = delGame;
+                    break
+                }
+            case "EUR":
+                if (ig != "0") {
+                    convert = ig/parseFloat(cur.Value);
+                    curEUR=convert.toFixed(2)+' &#8364;';
+                    s1.innerHTML = curEUR;
+                    break;
+                } else{
+                    delGame='Игра удалена из Steam';
+                    s1.innerHTML = delGame;
+                    break
+                }
+        } 
+    });
+
+        $.post("http://127.0.0.1:8081/api/currency",
+    {
+        cur: currency
+    },
+    function (x){
+        cur = x.currency[0];
+    });
+
+  });
+});
+</script>
+<div >
+    <select id="select">
+    <option selected>Выберите игру</option>
+     {{range $key, $val := .}}
+    <option name="g" value={{$key}}>{{$val}}</option>
+    {{end}}
+    </select>
+</div>
+<p></p>
+<div>
+    <input type="radio" value="RUB" name="currency">Рубль
+    <input type="radio" value="USD" name="currency">Доллар
+    <input type="radio" value="EUR" name="currency">Евро
+    <p></p>
+    <button id="btn">Посчитать</button>
+    <p></p>
+    <p id="text"></p>
+    <p></p>
+    <p id="del"></p>
+</div>
+{{end}}
