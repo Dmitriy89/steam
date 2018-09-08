@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -37,7 +40,7 @@ func getInfoGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "origin, content-type, accept")
 	w.Header().Set("Content-Type", "application/json")
-	p, _ := infoGame(r.FormValue("idgame"))
+	p, _ := infoGame1(r.FormValue("idgame"))
 
 	var slice = make([]int, 0)
 	slice = append(slice, p)
@@ -49,7 +52,7 @@ func getInfoGame(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func infoGame(n string) (int, error) {
+func infoGame1(n string) (int, error) {
 
 	con := http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -80,6 +83,56 @@ func infoGame(n string) (int, error) {
 		return 0, err
 	}
 	return priceInt, err
+}
+
+func infoGame2(n string) (int, error) {
+
+	resp, err := http.Get("https://store.steampowered.com/api/appdetails?appids=" + n)
+
+	if err != nil {
+		return 0, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return 0, err
+	}
+
+	b := bytes.NewReader(body)
+	var d interface{}
+	decode := json.NewDecoder(b)
+
+	for {
+		tok, errTok := decode.Token()
+		if errTok != nil && errTok != io.EOF {
+			return 0, errTok
+		} else if errTok == io.EOF {
+			//print("\nEnd json reader\n")
+			break
+		}
+		switch tok := tok.(type) {
+		case string:
+			if tok == "price_overview" {
+				err := decode.Decode(&d)
+				if err != nil {
+					return 0, fmt.Errorf("Error decode: %s", err)
+				}
+			}
+		}
+	}
+
+	switch d := d.(type) {
+	case map[string]interface{}:
+		if i, ok := d["final"].(float64); ok {
+			return int(i) / 100, nil
+		}
+	default:
+		return 0, errors.New("Game remove")
+	}
+	return 0, err
 }
 
 func listGame() (*listgame, error) {
